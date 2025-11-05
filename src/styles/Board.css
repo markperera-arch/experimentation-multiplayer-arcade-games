@@ -1,0 +1,10 @@
+.board {
+  display: grid;
+  gap: 2px;
+  background-color: #888;
+  padding: 2px;
+  border-radius: 5px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+

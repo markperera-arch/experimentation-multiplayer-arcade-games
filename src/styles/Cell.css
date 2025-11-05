@@ -1,0 +1,90 @@
+.cell {
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.1s ease;
+}
+
+.cell.hidden {
+  background: linear-gradient(145deg, #c4c4c4, #e0e0e0);
+  border: 2px outset #d0d0d0;
+}
+
+.cell.hidden:hover {
+  background: linear-gradient(145deg, #d0d0d0, #e8e8e8);
+  transform: scale(1.05);
+}
+
+.cell.hidden:active {
+  border-style: inset;
+  transform: scale(0.98);
+}
+
+.cell.revealed {
+  background: #f5f5f5;
+  border: 1px solid #ccc;
+  cursor: default;
+}
+
+.cell.mine {
+  background: #ff6b6b;
+  font-size: 18px;
+}
+
+.cell.flagged {
+  font-size: 18px;
+}
+
+/* Number colors */
+.cell.number-1 {
+  color: #0000ff;
+}
+
+.cell.number-2 {
+  color: #008000;
+}
+
+.cell.number-3 {
+  color: #ff0000;
+}
+
+.cell.number-4 {
+  color: #000080;
+}
+
+.cell.number-5 {
+  color: #800000;
+}
+
+.cell.number-6 {
+  color: #008080;
+}
+
+.cell.number-7 {
+  color: #000000;
+}
+
+.cell.number-8 {
+  color: #808080;
+}
+
+@media (max-width: 768px) {
+  .cell {
+    width: 25px;
+    height: 25px;
+    font-size: 12px;
+  }
+
+  .cell.mine,
+  .cell.flagged {
+    font-size: 14px;
+  }
+}
+
+
