@@ -1,0 +1,144 @@
+.minesweeper-game {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  padding: 20px;
+}
+
+.game-loading,
+.game-error {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  color: white;
+}
+
+.game-loading h2,
+.game-error h2 {
+  font-size: 32px;
+  margin-bottom: 20px;
+}
+
+.game-error button {
+  padding: 12px 24px;
+  background: white;
+  color: #1e3c72;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding: 0 20px;
+}
+
+.game-header h1 {
+  color: white;
+  font-size: 36px;
+  margin: 0;
+  text-align: center;
+  flex: 1;
+}
+
+.back-btn {
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  border: 2px solid white;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.back-btn:hover {
+  background: white;
+  color: #1e3c72;
+}
+
+.game-info {
+  display: flex;
+  gap: 20px;
+  color: white;
+  font-size: 14px;
+}
+
+.board-scroll-container {
+  width: 100%;
+  max-width: 900px;
+  height: 600px;
+  margin: 0 auto;
+  overflow: auto;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.minesweeper-board {
+  display: grid;
+  cursor: pointer;
+}
+
+.mine-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ccc;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.1s;
+  user-select: none;
+}
+
+.mine-cell.hidden {
+  background: linear-gradient(135deg, #e0e0e0 0%, #bdbdbd 100%);
+  cursor: pointer;
+}
+
+.mine-cell.hidden:hover {
+  background: linear-gradient(135deg, #d0d0d0 0%, #aaa 100%);
+}
+
+.mine-cell.revealed {
+  background: #f5f5f5;
+  cursor: default;
+}
+
+.mine-cell.mine {
+  background: #f44336;
+  color: white;
+}
+
+.mine-cell.number-1 { color: #2196F3; }
+.mine-cell.number-2 { color: #4CAF50; }
+.mine-cell.number-3 { color: #FF5722; }
+.mine-cell.number-4 { color: #9C27B0; }
+.mine-cell.number-5 { color: #FF9800; }
+.mine-cell.number-6 { color: #00BCD4; }
+.mine-cell.number-7 { color: #000; }
+.mine-cell.number-8 { color: #888; }
+
+.game-instructions {
+  text-align: center;
+  margin-top: 20px;
+  color: white;
+}
+
+.game-instructions p {
+  margin: 5px 0;
+  font-size: 14px;
+}
+
+.game-instructions kbd {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: bold;
+}
