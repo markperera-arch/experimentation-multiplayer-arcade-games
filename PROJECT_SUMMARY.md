@@ -232,6 +232,27 @@ The foundation is ready for:
 - Frontend logs: Browser console (F12)
 - Network: Socket.io tab in browser dev tools
 
+### Common Issues & Fixes:
+
+**"Rollup failed to resolve import" error:**
+```bash
+# Make sure you're in the project directory
+cd /Users/markperera/Projects/test\ project
+# Reinstall dependencies
+npm install
+```
+
+**Build fails or dependencies missing:**
+- Always run commands from the project root directory
+- Run `npm install` in root directory for frontend deps
+- Run `cd server && npm install` for backend deps
+- Check that `react-router-dom` and `socket.io-client` are in `node_modules/`
+
+**Server connection issues:**
+- Verify backend is running on port 3001
+- Check `server/data/` directory exists
+- Ensure both frontend and backend dependencies are installed
+
 ---
 
 ## 🎓 What You Learned
