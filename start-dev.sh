@@ -1,5 +1,9 @@
 #!/bin/bash
 
+# Get the directory where this script is located
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
 echo "🎮 Starting MMO Gaming Platform..."
 echo ""
 
@@ -24,15 +28,14 @@ echo "Press Ctrl+C to stop both servers"
 echo ""
 
 # Start backend in background
-cd server && npm start &
+(cd server && npm start) &
 BACKEND_PID=$!
 
 # Wait a bit for backend to start
 sleep 3
 
-# Start frontend
-cd ..
+# Start frontend (stay in project root)
 npm run dev
 
 # Cleanup: kill backend when frontend is stopped
-kill $BACKEND_PID
+kill $BACKEND_PID 2>/dev/null
