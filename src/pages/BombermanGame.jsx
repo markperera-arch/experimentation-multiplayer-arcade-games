@@ -20,12 +20,15 @@ const BombermanGame = () => {
   const [chatVisible, setChatVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [keys, setKeys] = useState({});
   const canvasRef = useRef(null);
+  const keysRef = useRef({});
+  const lastUpdateRef = useRef(Date.now());
+  const animationFrameRef = useRef(null);
 
   const TILE_SIZE = 32;
   const VIEWPORT_WIDTH = 20;
   const VIEWPORT_HEIGHT = 15;
+  const MOVE_SPEED = 3; // tiles per second
 
   useEffect(() => {
     if (!socket || !player) {
@@ -141,11 +144,16 @@ const BombermanGame = () => {
         return;
       }
 
-      setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: true }));
+      // Prevent default for arrow keys and space to avoid page scrolling
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(e.key)) {
+        e.preventDefault();
+      }
+
+      keysRef.current[e.key.toLowerCase()] = true;
     };
 
     const handleKeyUp = (e) => {
-      setKeys((prev) => ({ ...prev, [e.key.toLowerCase()]: false }));
+      keysRef.current[e.key.toLowerCase()] = false;
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -157,58 +165,129 @@ const BombermanGame = () => {
     };
   }, []);
 
-  // Game loop for movement
-  useEffect(() => {
-    if (!socket || !myPlayer) return;
+  // Smooth movement system with collision detection
+  const canMoveToPosition = (x, y, currentMap) => {
+    const tileX = Math.floor(x);
+    const tileY = Math.floor(y);
+    
+    // Check if position is within bounds
+    if (tileX < 0 || tileX >= 100 || tileY < 0 || tileY >= 100) {
+      return false;
+    }
+    
+    // Check if the tile is empty
+    if (!currentMap[tileY] || !currentMap[tileY][tileX] || currentMap[tileY][tileX].type !== 'empty') {
+      return false;
+    }
+    
+    return true;
+  };
 
-    const gameLoop = setInterval(() => {
+  // Game loop for smooth movement
+  useEffect(() => {
+    if (!socket || !myPlayer || !map.length) return;
+
+    let lastServerUpdate = Date.now();
+    let bombKeyWasPressed = false;
+
+    const gameLoop = () => {
+      const now = Date.now();
+      const deltaTime = (now - lastUpdateRef.current) / 1000; // Convert to seconds
+      lastUpdateRef.current = now;
+
       let newX = myPlayer.x;
       let newY = myPlayer.y;
       let direction = myPlayer.direction;
       let moved = false;
 
-      if (keys['w'] || keys['arrowup']) {
-        newY -= 1;
-        direction = 'up';
-        moved = true;
-      }
-      if (keys['s'] || keys['arrowdown']) {
-        newY += 1;
-        direction = 'down';
-        moved = true;
-      }
-      if (keys['a'] || keys['arrowleft']) {
-        newX -= 1;
-        direction = 'left';
-        moved = true;
-      }
-      if (keys['d'] || keys['arrowright']) {
-        newX += 1;
-        direction = 'right';
-        moved = true;
-      }
+      const moveDistance = MOVE_SPEED * deltaTime;
 
-      if (moved) {
-        // Check collision
-        if (map[newY] && map[newY][newX] && map[newY][newX].type === 'empty') {
-          setMyPlayer((prev) => ({ ...prev, x: newX, y: newY, direction }));
-          socket.emit('bomberman:move', { x: newX, y: newY, direction });
+      // Check movement keys
+      if (keysRef.current['w'] || keysRef.current['arrowup']) {
+        const testY = newY - moveDistance;
+        if (canMoveToPosition(newX, testY, map)) {
+          newY = testY;
+          direction = 'up';
+          moved = true;
+        }
+      }
+      if (keysRef.current['s'] || keysRef.current['arrowdown']) {
+        const testY = newY + moveDistance;
+        if (canMoveToPosition(newX, testY, map)) {
+          newY = testY;
+          direction = 'down';
+          moved = true;
+        }
+      }
+      if (keysRef.current['a'] || keysRef.current['arrowleft']) {
+        const testX = newX - moveDistance;
+        if (canMoveToPosition(testX, newY, map)) {
+          newX = testX;
+          direction = 'left';
+          moved = true;
+        }
+      }
+      if (keysRef.current['d'] || keysRef.current['arrowright']) {
+        const testX = newX + moveDistance;
+        if (canMoveToPosition(testX, newY, map)) {
+          newX = testX;
+          direction = 'right';
+          moved = true;
         }
       }
 
-      // Place bomb
-      if (keys[' '] || keys['space']) {
-        socket.emit('bomberman:place_bomb', { x: myPlayer.x, y: myPlayer.y }, (response) => {
+      if (moved) {
+        setMyPlayer((prev) => ({ ...prev, x: newX, y: newY, direction }));
+        
+        // Send update to server at most every 50ms
+        if (now - lastServerUpdate > 50) {
+          socket.emit('bomberman:move', { x: newX, y: newY, direction });
+          lastServerUpdate = now;
+        }
+
+        // Check for powerup pickup
+        const playerTileX = Math.floor(newX);
+        const playerTileY = Math.floor(newY);
+        Object.values(powerups).forEach(powerup => {
+          if (powerup.x === playerTileX && powerup.y === playerTileY) {
+            socket.emit('bomberman:pickup_powerup', { powerupId: powerup.id }, (response) => {
+              if (response.success) {
+                // Update local player state with powerup effects
+                setMyPlayer(prev => ({
+                  ...prev,
+                  ...response.playerState
+                }));
+              }
+            });
+          }
+        });
+      }
+
+      // Handle bomb placement
+      if ((keysRef.current[' '] || keysRef.current['space']) && !bombKeyWasPressed) {
+        bombKeyWasPressed = true;
+        const bombX = Math.floor(myPlayer.x);
+        const bombY = Math.floor(myPlayer.y);
+        socket.emit('bomberman:place_bomb', { x: bombX, y: bombY }, (response) => {
           if (!response.success) {
             console.log('Cannot place bomb:', response.error);
           }
         });
-        setKeys((prev) => ({ ...prev, ' ': false, 'space': false }));
+      } else if (!keysRef.current[' '] && !keysRef.current['space']) {
+        bombKeyWasPressed = false;
       }
-    }, 100);
 
-    return () => clearInterval(gameLoop);
-  }, [socket, myPlayer, keys, map]);
+      animationFrameRef.current = requestAnimationFrame(gameLoop);
+    };
+
+    animationFrameRef.current = requestAnimationFrame(gameLoop);
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, [socket, myPlayer, map]);
 
   // Render game
   useEffect(() => {

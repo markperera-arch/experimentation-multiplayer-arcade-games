@@ -84,8 +84,8 @@ class BombermanServer {
     
     this.players.set(playerId, {
       ...player,
-      x: spawnPos.x,
-      y: spawnPos.y,
+      x: spawnPos.x + 0.5,  // Center in tile
+      y: spawnPos.y + 0.5,  // Center in tile
       hp: 3,
       maxHp: 3,
       speed: 1,
@@ -177,14 +177,19 @@ class BombermanServer {
     }
 
     // Validate position (check collision)
-    if (x < 0 || x >= this.mapWidth || y < 0 || y >= this.mapHeight) {
+    // Support fractional coordinates by checking the tile
+    const tileX = Math.floor(x);
+    const tileY = Math.floor(y);
+
+    if (tileX < 0 || tileX >= this.mapWidth || tileY < 0 || tileY >= this.mapHeight) {
       return { success: false, error: 'Out of bounds' };
     }
 
-    if (this.map[y][x].type !== 'empty') {
+    if (this.map[tileY][tileX].type !== 'empty') {
       return { success: false, error: 'Collision' };
     }
 
+    // Update player position (support fractional coordinates)
     player.x = x;
     player.y = y;
     player.direction = direction;
@@ -262,23 +267,26 @@ class BombermanServer {
       }
     });
 
-    // Check for player damage
+    // Check for player damage (handle fractional coordinates)
     const damagedPlayers = [];
     const playerDeaths = [];
     
     for (const [pId, p] of this.players.entries()) {
+      const playerTileX = Math.floor(p.x);
+      const playerTileY = Math.floor(p.y);
+      
       for (const { x, y } of explosionCells) {
-        if (p.x === x && p.y === y) {
+        if (playerTileX === x && playerTileY === y) {
           // Check if in PvP zone
           if (this.map[y][x].isPvpZone) {
             p.hp--;
             damagedPlayers.push(pId);
             
             if (p.hp <= 0) {
-              // Respawn player
+              // Respawn player at center of spawn tile
               const spawnPos = this.findSpawnPosition();
-              p.x = spawnPos.x;
-              p.y = spawnPos.y;
+              p.x = spawnPos.x + 0.5;
+              p.y = spawnPos.y + 0.5;
               p.hp = p.maxHp;
               playerDeaths.push(pId);
             }
@@ -362,8 +370,10 @@ class BombermanServer {
       return { success: false, error: 'Player not found' };
     }
 
-    // Check if player is at powerup position
-    if (player.x !== powerup.x || player.y !== powerup.y) {
+    // Check if player is at powerup position (handle fractional coordinates)
+    const playerTileX = Math.floor(player.x);
+    const playerTileY = Math.floor(player.y);
+    if (playerTileX !== powerup.x || playerTileY !== powerup.y) {
       return { success: false, error: 'Not at powerup position' };
     }
 
