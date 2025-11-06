@@ -234,6 +234,15 @@ The foundation is ready for:
 
 ### Common Issues & Fixes:
 
+**"EADDRINUSE: address already in use" error:**
+```bash
+# Kill any processes using port 3001 or 5173
+lsof -ti:3001 | xargs kill -9
+lsof -ti:5173 | xargs kill -9
+# Then try starting again
+./start-dev.sh
+```
+
 **"Rollup failed to resolve import" error:**
 ```bash
 # Make sure you're in the project directory
@@ -252,6 +261,7 @@ npm install
 - Verify backend is running on port 3001
 - Check `server/data/` directory exists
 - Ensure both frontend and backend dependencies are installed
+- If ports are in use, kill existing processes (see above)
 
 ---
 
