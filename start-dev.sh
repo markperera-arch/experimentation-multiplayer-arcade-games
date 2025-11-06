@@ -7,6 +7,12 @@ cd "$SCRIPT_DIR"
 echo "🎮 Starting MMO Gaming Platform..."
 echo ""
 
+# Kill any existing processes on ports 3001 and 5173
+echo "🧹 Cleaning up existing processes..."
+lsof -ti:3001 | xargs kill -9 2>/dev/null && echo "   Killed process on port 3001" || echo "   Port 3001 is free"
+lsof -ti:5173 | xargs kill -9 2>/dev/null && echo "   Killed process on port 5173" || echo "   Port 5173 is free"
+echo ""
+
 # Check if dependencies are installed
 if [ ! -d "node_modules" ]; then
     echo "📦 Installing frontend dependencies..."
