@@ -1,0 +1,28 @@
+.bomberman-game {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #c31432 0%, #240b36 100%);
+  padding: 20px;
+}
+
+.player-game-stats {
+  display: flex;
+  gap: 15px;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.game-canvas-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px auto;
+}
+
+.game-canvas {
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  background: #2d5016;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
