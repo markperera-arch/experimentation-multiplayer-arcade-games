@@ -25,6 +25,54 @@ const gameManager = new GameManager();
 const playerManager = new PlayerManager();
 const chatManager = new ChatManager();
 
+// XP per second timers for Bomberman players
+const bombermanXPTimers = new Map(); // socketId -> intervalId
+
+// Helper functions for Bomberman XP per second
+function startBombermanXPTimer(socketId) {
+  // Stop existing timer if any
+  stopBombermanXPTimer(socketId);
+
+  const intervalId = setInterval(() => {
+    const socket = io.sockets.sockets.get(socketId);
+    if (!socket || socket.currentGame !== 'bomberman') {
+      stopBombermanXPTimer(socketId);
+      return;
+    }
+
+    const player = playerManager.getPlayer(socketId);
+    if (!player) {
+      stopBombermanXPTimer(socketId);
+      return;
+    }
+
+    // Get player game state to check HP
+    // Use game manager's internal access (we'll need to expose a method)
+    try {
+      const gamePlayers = gameManager.getPlayersInGame('bomberman');
+      const gamePlayer = gamePlayers.find(p => p.socketId === socketId || p.playerId === socketId);
+      if (gamePlayer && gamePlayer.hp > 0) {
+        // Award +1 XP per second while alive
+        const updatedPlayer = playerManager.addXP(socketId, 1);
+        socket.emit('player:update', updatedPlayer);
+      }
+    } catch (error) {
+      // Game might not exist, stop timer
+      stopBombermanXPTimer(socketId);
+    }
+  }, 1000); // Every second
+
+  bombermanXPTimers.set(socketId, intervalId);
+}
+
+function stopBombermanXPTimer(socketId) {
+  const intervalId = bombermanXPTimers.get(socketId);
+  if (intervalId) {
+    clearInterval(intervalId);
+    bombermanXPTimers.delete(socketId);
+  }
+}
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ 
@@ -69,6 +117,11 @@ io.on('connection', (socket) => {
       const gameState = gameManager.joinGame(gameName, socket.id, player);
       socket.currentGame = gameName;
 
+      // Start XP per second timer for Bomberman players
+      if (gameName === 'bomberman') {
+        startBombermanXPTimer(socket.id);
+      }
+
       callback({ success: true, gameState });
       
       // Broadcast updated player list to room
@@ -84,6 +137,11 @@ io.on('connection', (socket) => {
   // Leave game room
   socket.on('game:leave', () => {
     if (socket.currentGame) {
+      // Stop XP timer if leaving Bomberman
+      if (socket.currentGame === 'bomberman') {
+        stopBombermanXPTimer(socket.id);
+      }
+
       gameManager.leaveGame(socket.currentGame, socket.id);
       socket.leave(socket.currentGame);
       
@@ -170,6 +228,37 @@ io.on('connection', (socket) => {
           y: data.y,
           direction: data.direction
         });
+
+        // Handle automatic powerup pickup
+        if (result.powerupPicked) {
+          const pickupResult = gameManager.handleBombermanPickupPowerup(
+            socket.currentGame,
+            socket.id,
+            result.powerupPicked
+          );
+
+          if (pickupResult.success) {
+            // Broadcast powerup pickup
+            io.to(socket.currentGame).emit('bomberman:powerup_picked', {
+              powerupId: result.powerupPicked,
+              playerId: socket.id,
+              playerState: {
+                speed: pickupResult.playerState.speed,
+                maxBombs: pickupResult.playerState.maxBombs,
+                explosionRange: pickupResult.playerState.explosionRange
+              }
+            });
+
+            // Update player stats on client
+            const player = playerManager.getPlayer(socket.id);
+            socket.emit('bomberman:player_stats', {
+              speed: pickupResult.playerState.speed,
+              maxBombs: pickupResult.playerState.maxBombs,
+              explosionRange: pickupResult.playerState.explosionRange,
+              hp: player ? player.hp : 3
+            });
+          }
+        }
       }
     } catch (error) {
       console.error('Bomberman move error:', error);
@@ -225,6 +314,21 @@ io.on('connection', (socket) => {
                   if (socket.id !== damagedPlayerId) {
                     const killerPlayer = playerManager.addXP(socket.id, 50);
                     socket.emit('player:update', killerPlayer);
+                  }
+
+                  // Broadcast respawn position - get from game players list
+                  const gamePlayers = gameManager.getPlayersInGame('bomberman');
+                  const gamePlayer = gamePlayers.find(p => 
+                    (p.socketId === damagedPlayerId || p.playerId === damagedPlayerId)
+                  );
+                  if (gamePlayer) {
+                    io.to(socket.currentGame).emit('bomberman:player_move', {
+                      playerId: damagedPlayerId,
+                      x: gamePlayer.x,
+                      y: gamePlayer.y,
+                      direction: gamePlayer.direction,
+                      hp: gamePlayer.hp
+                    });
                   }
                 }
                 
@@ -291,6 +395,9 @@ io.on('connection', (socket) => {
   // Disconnect handling
   socket.on('disconnect', () => {
     console.log(`Player disconnected: ${socket.id}`);
+    
+    // Stop XP timer
+    stopBombermanXPTimer(socket.id);
     
     if (socket.currentGame) {
       gameManager.leaveGame(socket.currentGame, socket.id);

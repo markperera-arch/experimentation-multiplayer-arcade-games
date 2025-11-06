@@ -136,7 +136,17 @@ class BombermanServer {
   }
 
   getPlayers() {
-    return Array.from(this.players.values());
+    return Array.from(this.players.entries()).map(([id, player]) => ({
+      socketId: id,
+      playerId: id,
+      username: player.username,
+      level: player.level,
+      x: player.x,
+      y: player.y,
+      hp: player.hp,
+      maxHp: player.maxHp,
+      direction: player.direction
+    }));
   }
 
   getPlayerCount() {
@@ -146,6 +156,7 @@ class BombermanServer {
   getPlayersData() {
     return Array.from(this.players.entries()).map(([id, player]) => ({
       playerId: id,
+      socketId: id,
       username: player.username,
       level: player.level,
       x: player.x,
@@ -189,10 +200,32 @@ class BombermanServer {
       return { success: false, error: 'Collision' };
     }
 
+    // Check collision with bombs
+    for (const bomb of this.bombs.values()) {
+      if (bomb.x === x && bomb.y === y) {
+        return { success: false, error: 'Bomb collision' };
+      }
+    }
+
+    const oldX = player.x;
+    const oldY = player.y;
+
     // Update player position (support fractional coordinates)
     player.x = x;
     player.y = y;
     player.direction = direction;
+
+    // Check for powerup pickup at new position
+    for (const [powerupId, powerup] of this.powerups.entries()) {
+      if (powerup.x === x && powerup.y === y) {
+        // Auto-pickup powerup
+        return {
+          success: true,
+          powerupPicked: powerupId,
+          powerup: powerup
+        };
+      }
+    }
 
     return { success: true };
   }

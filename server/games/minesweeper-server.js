@@ -85,7 +85,13 @@ class MinesweeperServer {
   }
 
   getPlayers() {
-    return Array.from(this.players.values());
+    return Array.from(this.players.entries()).map(([id, player]) => ({
+      socketId: id,
+      playerId: id,
+      username: player.username,
+      level: player.level,
+      ...player
+    }));
   }
 
   getPlayerCount() {
